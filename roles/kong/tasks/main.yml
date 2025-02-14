@@ -1,0 +1,89 @@
+---
+- name: Create a directory at /etc/kong
+  file:
+    path: /etc/kong
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+# Copy kong.conf to the target host
+- name: Copy kong.conf
+  copy:
+    src: files/kong.conf
+    dest: /etc/kong/kong.conf
+    owner: root
+    group: root
+    mode: '0644'
+# Copy kong.yml to the target host
+- name: Copy kong.yml
+  copy:
+    src: files/kong.yml
+    dest: /etc/kong/kong.yml
+    owner: root
+    group: root
+    mode: '0644'
+
+# Get external IP
+- name: Get external IP address
+  uri:
+    url: https://api.ipify.org?format=text
+    return_content: yes
+  register: external_ip_result
+
+# Pull the Kong Gateway Docker image
+- name: Pull Kong Gateway Docker image
+  docker_image:
+    name: kong
+    tag: "latest"
+    source: pull
+
+# Run Kong Gateway container
+- name: Run Kong Gateway container
+  docker_container:
+    name: kong
+    image: kong:latest
+    state: started
+    restart_policy: always
+    ports:
+      - "8000:8000"  # Proxy port
+      - "8443:8443"  # Proxy SSL port
+      - "8001:8001"  # Admin API port
+      - "8444:8444"  # Admin API SSL port
+      - "8002:8002"
+      - "8445:8445"
+      - "8003:8003"
+      - "8004:8004"
+    volumes:
+      - /etc/kong/kong.yml:/etc/kong/kong.yml:ro
+      - /etc/kong/kong.conf:/etc/kong/kong.conf:ro
+      - /etc/kong/plugins/myplugin:/usr/local/share/lua/5.1/kong/plugins/myplugin:ro
+    env:
+      KONG_DATABASE: "off"  # Use DB-less mode
+      KONG_DECLARATIVE_CONFIG: "/etc/kong/kong.yml"
+      KONG_CONF: "/etc/kong/kong.conf"
+      KONG_PROXY_ACCESS_LOG: "/usr/local/kong/logs/proxy_access.log"
+      KONG_ADMIN_ACCESS_LOG: "/usr/local/kong/logs/admin_access.log"
+      KONG_PROXY_ERROR_LOG: "/usr/local/kong/logs/proxy_error.log"
+      KONG_ADMIN_ERROR_LOG: "/usr/local/kong/logs/admin_error.log"
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+      KONG_ADMIN_GUI_URL: "http://{{ external_ip_result.content }}:8002"
+
+# Check if the container exists
+- name: Check if the container exists
+  docker_container_info:
+    name: kong
+  register: container_info
+  failed_when: false
+
+# Restart the container if it exists
+- name: Stop the Docker container
+  docker_container:
+    name: kong
+    state: stopped
+  when: container_info.container is defined
+
+- name: Start the Docker container
+  docker_container:
+    name: kong
+    state: started
+  when: container_info.container is defined

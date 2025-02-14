@@ -1,0 +1,46 @@
+_format_version: "3.0"
+_transform: true
+ 
+services:
+- name: country_service
+  url: https://api.sampleapis.com/countries/countries
+  routes:
+  - name: country_route
+    paths:
+    - /countries
+    strip_path: true
+  plugins:
+  - name: myplugin
+  - name: proxy-cache
+    config:
+      strategy: memory
+      content_type:
+      - application/json
+      cache_ttl: 300
+      memory:
+        dictionary_name: kong_db_cache
+
+- name: user_service
+  url: https://jsonplaceholder.typicode.com/users
+  routes:
+  - name: user_route
+    paths:
+    - /users
+    strip_path: true
+  plugins:
+  - name: proxy-cache
+    config:
+      strategy: memory
+      content_type:
+      - application/json
+      cache_ttl: 300
+      memory:
+        dictionary_name: kong_db_cache
+
+- name: example_service
+  url: http://httpbin.konghq.com
+  routes:
+  - name: example_route
+    paths:
+    - /mock
+    strip_path: true

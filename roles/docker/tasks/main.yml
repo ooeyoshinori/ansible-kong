@@ -1,0 +1,49 @@
+---
+# Install Docker dependencies
+- name: Install required packages
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - apt-transport-https
+    - ca-certificates
+    - curl
+    - software-properties-common
+
+# Add Docker's official GPG key
+- name: Add Docker GPG key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+# Add Docker repository
+- name: Add Docker repository
+  apt_repository:
+    repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+
+# Install Docker
+- name: Install Docker
+  apt:
+    name: docker-ce
+    state: present
+    update_cache: yes
+
+# Install pip3
+- name: Install pip3
+  apt:
+    name: python3-pip
+    state: present
+    update_cache: yes
+
+# Install Docker SDK for Python
+- name: Install Docker SDK for Python
+  pip:
+    name: docker
+
+# Ensure Docker service is running
+- name: Ensure Docker is running
+  service:
+    name: docker
+    state: started
+    enabled: yes
