@@ -22,7 +22,14 @@
     owner: root
     group: root
     mode: '0644'
-
+# Copy the /files/plugins/myplugin directory
+- name: Copy the /files/plugins/myplugin directory
+  copy:
+    src: files/plugins
+    dest: /etc/kong/
+    owner: root
+    group: root
+    mode: '0644'
 # Get external IP
 - name: Get external IP address
   uri:
